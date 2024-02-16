@@ -11,7 +11,6 @@ module CodePraise
 
       def self.rebuild_entity(db_record)
         return nil unless db_record
-        binding.pry
         Entity::Commit.new(
           id: db_record.id,
           origin_id: db_record.origin_id,

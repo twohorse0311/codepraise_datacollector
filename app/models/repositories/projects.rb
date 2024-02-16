@@ -61,8 +61,6 @@ module CodePraise
         end
 
         def create_project
-          require 'pry'
-          binding.pry
           Database::ProjectOrm.create(@entity.to_attr_hash)
         end
 
