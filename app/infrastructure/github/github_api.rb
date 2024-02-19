@@ -10,7 +10,7 @@ module CodePraise
         @github_token = token
       end
 
-      def repo_data(username, project_name)
+      def git_repo_data(username, project_name)
         Request.new(@github_token).repo(username, project_name).parse
       end
 

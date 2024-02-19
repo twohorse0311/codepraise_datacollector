@@ -6,11 +6,11 @@ require_relative 'projects'
 module CodePraise
   module Repository
     # Finds the right repository for an entity object or class
-    module For
+    class For
       ENTITY_REPOSITORY = {
         Entity::Project => Projects,
-        Entity::Member => Members,
-        Entity::Commit => Commits
+        Entity::Member  => Members,
+        Entity::Commit  => Commits
       }.freeze
 
       def self.klass(entity_klass)
