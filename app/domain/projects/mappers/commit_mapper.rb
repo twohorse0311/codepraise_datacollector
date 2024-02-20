@@ -4,17 +4,33 @@ module CodePraise
   # Provides access to project commit
   module Github
     class CommitMapper
-      def initialize(gh_token, gateway_class = Github::Api)
-        @token = gh_token
-        @gateway_class = gateway_class
-        @gateway = @gateway_class.new(@token)
+      def initialize(path)
+        @path = path
       end
 
-      def load_several(owner_name, project_name)
-        @gateway.commit_data(owner_name, project_name).map do |commit|
-          CommitMapper.build_entity(commit)
+      def get_commit_entity
+        commits_by_year = {}
+      
+        full_command = Git::Command.new
+          .log
+          .with_formatcommit
+          .with_formatdate
+          .full_command
+      
+        Dir.chdir(@path) do
+          IO.popen(full_command) do |output|
+            output.each do |line|
+              sha, year = line.split(' ')
+              next unless year.to_i.between?(2014, 2023)
+              unless commits_by_year.key?(year.to_i)
+                commits_by_year[year.to_i] = { year: year.to_i, sha: sha }
+              end
+            end
+          end
         end
+        commits_by_year.values
       end
+      
 
       def self.build_entity(commit)
         DataMapper.new(commit).build_entity
@@ -29,24 +45,19 @@ module CodePraise
         def build_entity
           Entity::Commit.new(
             id: nil,
-            origin_id: origin_id,
-            sha: sha,
-            commit_date: commit_date
+            sha:,
+            commit_date:
           )
         end
 
         private
 
-        def origin_id
-          @commit['node_id']
-        end
-
         def sha
-          @commit['sha']
+          @commit[:sha]
         end
 
         def commit_date
-          @commit['commit']['committer']['date']
+          @commit[:year]
         end
       end
     end

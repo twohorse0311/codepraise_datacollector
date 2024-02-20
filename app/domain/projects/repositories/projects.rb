@@ -11,7 +11,7 @@ module CodePraise
       end
 
       def self.find_full_name(owner_name, project_name)
-       # https://github.com/jeremyevans/sequel/blob/master/lib/sequel/dataset/graph.rb
+        # https://github.com/jeremyevans/sequel/blob/master/lib/sequel/dataset/graph.rb
         # SELECT [from projects and members using aliases for conflicting names]
         # FROM `projects` LEFT OUTER JOIN `members` ON (`members`.`id` = 12)
         # WHERE ((`username` = 'owner') AND (`name` = 'proj'))
@@ -27,12 +27,12 @@ module CodePraise
       end
 
       def self.find_id(id)
-        db_record = Database::ProjectOrm.first(id: id)
+        db_record = Database::ProjectOrm.first(id:)
         rebuild_entity(db_record)
       end
 
       def self.find_origin_id(origin_id)
-        db_record = Database::ProjectOrm.first(origin_id: origin_id)
+        db_record = Database::ProjectOrm.first(origin_id:)
         rebuild_entity(db_record)
       end
 
@@ -55,6 +55,11 @@ module CodePraise
         )
       end
 
+      def self.update_commit(entity, commits)
+        db_project = PersistProject.new(entity).call_update_commits(commits)
+        rebuild_entity(db_project)
+      end
+
       # Helper class to persist project and its members to database
       class PersistProject
         def initialize(entity)
@@ -65,20 +70,30 @@ module CodePraise
           Database::ProjectOrm.create(@entity.to_attr_hash)
         end
 
+        def find_project
+          Database::ProjectOrm.first(origin_id: @entity.origin_id)
+        end
+
         def call
           owner = Members.find_or_create(@entity.owner)
 
           create_project.tap do |db_project|
-            db_project.update(owner: owner)
+            db_project.update(owner:)
 
             @entity.contributors.each do |contributor|
               db_project.add_contributor(Members.find_or_create(contributor))
             end
-            @entity.commits.each do |commit|
-              db_project.add_commit(Commits.db_find_or_create(commit))
+          end
+        end
+
+        def call_update_commits(commits)
+          find_project.tap do |db_project|
+            commits.each do |commit|
+              db_project.add_commit(Commits.find_or_create(commit))
             end
           end
         end
+
       end
     end
   end

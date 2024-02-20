@@ -24,8 +24,6 @@ module CodePraise
               .new(App.config.GITHUB_TOKEN)
               .find(owner_name, project_name)
 
-            require 'pry'
-            binding.pry
 
             # Add project to database
             Repository::For.entity(project).create(project)
@@ -45,6 +43,10 @@ module CodePraise
             # Clone remote repo from project information
             gitrepo = GitRepo.new(project)
             gitrepo.clone unless gitrepo.exists_locally?
+
+            commits = Github::CommitMapper
+            .new(gitrepo.repo_local_path).get_commit_entity
+            Repository::For.entity(project).update_commit(project, commits)
 
             # Compile contributions for folder specified in route path
             path = request.remaining_path

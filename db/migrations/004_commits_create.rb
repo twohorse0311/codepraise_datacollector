@@ -8,9 +8,8 @@ Sequel.migration do
       primary_key :id
       foreign_key :project_id, :projects
 
-      String      :origin_id, unique: true
-      String      :sha
-      String      :commit_date
+      String      :sha, unique: true
+      Integer      :commit_date
 
       DateTime :created_at
       DateTime :updated_at

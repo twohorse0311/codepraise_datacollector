@@ -25,16 +25,19 @@ module CodePraise
         self
       end
 
-      def log(_path)
+      def log
         @command = 'log'
+        self
       end
 
       def with_formatcommit
-        @option << "--pretty=format:'%H %cd'"
+        @options << "pretty=format:'%H %cd'"
+        self
       end
 
       def with_formatdate
-        @option << '--date=format:%Y'
+        @options << 'date=format:%Y'
+        self
       end
 
       def with_porcelain

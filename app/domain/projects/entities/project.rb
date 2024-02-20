@@ -21,7 +21,7 @@ module CodePraise
       attribute :http_url,      Strict::String
       attribute :owner,         Member
       attribute :contributors,  Strict::Array.of(Member)
-      attribute :commits, Strict::Array.of(Commit)
+      attribute :commits, Strict::Array.of(Commit).optional
 
       def fullname
         "#{owner.username}/#{name}"

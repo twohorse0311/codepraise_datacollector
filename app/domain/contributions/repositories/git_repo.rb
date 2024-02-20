@@ -15,6 +15,10 @@ module CodePraise
       @local = Git::LocalGitRepo.new(remote, config.REPOSTORE_PATH)
     end
 
+    def repo_local_path
+      @local.path
+    end
+
     def local
       exists_locally? ? @local : raise(Errors::NoGitRepoFound)
     end

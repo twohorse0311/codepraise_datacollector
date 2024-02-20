@@ -10,9 +10,8 @@ module CodePraise
       include Dry.Types
 
       attribute :id,        Integer.optional
-      attribute :origin_id, Strict::String
       attribute :sha, Strict::String
-      attribute :commit_date, Strict::String
+      attribute :commit_date, Strict::Integer
 
       def to_attr_hash
         to_hash.except(:id)

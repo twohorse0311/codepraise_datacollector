@@ -13,7 +13,6 @@ module CodePraise
         return nil unless db_record
         Entity::Commit.new(
           id: db_record.id,
-          origin_id: db_record.origin_id,
           sha: db_record.sha,
           commit_date: db_record.commit_date
         )
@@ -25,7 +24,7 @@ module CodePraise
         end
       end
 
-      def self.db_find_or_create(entity)
+      def self.find_or_create(entity)
         Database::CommitOrm.find_or_create(entity.to_attr_hash)
       end
     end

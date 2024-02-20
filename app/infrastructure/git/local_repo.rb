@@ -23,6 +23,10 @@ module CodePraise
         @git_repo_path = [repostore_path, @remote.unique_id].join('/')
       end
 
+      def path
+        @git_repo_path 
+      end
+
       def clone_remote
         @remote.local_clone(@git_repo_path) { |line| yield line if block_given? }
         self

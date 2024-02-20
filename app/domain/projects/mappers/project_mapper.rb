@@ -14,23 +14,20 @@ module CodePraise
 
       def find(owner_name, project_name)
         data = @gateway.git_repo_data(owner_name, project_name)
-        build_entity(data, owner_name, project_name)
+        build_entity(data)
       end
 
-      def build_entity(data, owner_name, project_name)
-        DataMapper.new(data, @token, @gateway_class, owner_name, project_name).build_entity
+      def build_entity(data)
+        DataMapper.new(data, @token, @gateway_class).build_entity
       end
 
       # Extracts entity specific elements from data structure
       class DataMapper
-        def initialize(data, token, gateway_class, owner_name, project_name)
+        def initialize(data, token, gateway_class)
           @data = data
           @member_mapper = MemberMapper.new(
             token, gateway_class
             )
-          @commit_mapper = CommitMapper.new(token, gateway_class)
-          @owner_name = owner_name
-          @project_name = project_name
         end
 
         def build_entity
@@ -43,7 +40,7 @@ module CodePraise
             http_url: http_url,
             owner: owner,
             contributors: contributors, 
-            commits: commits
+            commits: nil
           )
         end
 
@@ -75,9 +72,9 @@ module CodePraise
           @member_mapper.load_several(@data['contributors_url'])
         end
 
-        def commits
-          @commit_mapper.load_several(@owner_name, @project_name)
-        end
+        # def commits
+        #   @commit_mapper.load_several(@owner_name, @project_name)
+        # end
       end
     end
   end
