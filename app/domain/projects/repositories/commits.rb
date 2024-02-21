@@ -5,6 +5,19 @@ require_relative 'members'
 module CodePraise
   module Repository
     class Commits
+      def initialize(project)
+        @project = project
+        @commits = project.commits
+      end
+
+      def exist?
+        exist_locally? ? @commits : false
+      end
+
+      def exist_locally?
+        !@commits.empty?
+      end
+
       def self.all
         Database::CommitOrm.all.map { |db_commit| rebuild_entity(db_commit) }
       end

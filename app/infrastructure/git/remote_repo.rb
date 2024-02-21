@@ -24,7 +24,6 @@ module CodePraise
       end
 
       def local_clone(path, &)
-        p path
         Command.new
           .clone(git_url, path)
           .with_std_error
