@@ -8,7 +8,6 @@ module CodePraise
     class AppraiseProject
       include Dry::Transaction
 
-      # step :ensure_watched_project
       step :retrieve_remote_project
       step :clone_remote
       step :store_commit
@@ -16,53 +15,55 @@ module CodePraise
 
       private
 
-      # Steps
-
-      # def ensure_watched_project(input)
-      #   if input[:watched_list].include? input[:requested].project_fullname
-      #     Success(input)
-      #   else
-      #     Failure('Please first request this project to be added to your list')
-      #   end
-      # end
+      NO_PROJ_ERR = 'Project not found'
+      DB_ERR = 'Having trouble accessing the database'
+      CLONE_ERR = 'Could not clone this project'
+      GET_COMMIT_ERR = 'Could not get the commits of this project'
+      NO_FOLDER_ERR = 'Could not find that folder'
 
       def retrieve_remote_project(input)
         input[:project] = Repository::For.klass(Entity::Project).find_full_name(
           input[:requested].owner_name, input[:requested].project_name
         )
 
-        input[:project] ? Success(input) : Failure('Project not found')
+        if input[:project]
+          Success(input)
+        else
+          Failure(Response::ApiResult.new(status: :not_found, message: NO_PROJ_ERR))
+        end
       rescue StandardError
-        Failure('Having trouble accessing the database')
+        Failure(Response::ApiResult.new(status: :internal_error, message: DB_ERR))
       end
 
       def clone_remote(input)
         gitrepo = GitRepo.new(input[:project])
-        gitrepo.clone! unless gitrepo.exists_locally?
+        gitrepo.clone unless gitrepo.exists_locally?
 
         Success(input.merge(gitrepo:))
       rescue StandardError
-        App.logger.error error.backtrace.join("\n")
-        Failure('Could not clone this project')
+        # App.logger.error error.backtrace.join("\n")
+        Failure(Response::ApiResult.new(status: :internal_error, message: CLONE_ERR))
       end
 
       def store_commit(input)
-        if (!commits_stored(input[:project]))
-          commits_from_log(input)
-        end
+        commits_from_log(input) unless commits_stored(input[:project])
+        input[:project] = Repository::For.klass(Entity::Project).find_full_name(
+          input[:requested].owner_name, input[:requested].project_name
+        )
         Success(input)
-      rescue StandardError => error
-        Failure(error.to_s)
+      rescue StandardError
+        Failure(Response::ApiResult.new(status: :internal_error, message: GET_COMMIT_ERR))
       end
 
       def appraise_contributions(input)
         input[:folder] = Mapper::Contributions
           .new(input[:gitrepo]).for_folder(input[:requested].folder_name)
-
-        Success(input)
+        p input[:project]
+        appraisal = Response::ProjectFolderContributions.new(input[:project], input[:folder])
+        Success(Response::ApiResult.new(status: :ok, message: appraisal))
       rescue StandardError
         App.logger.error "Could not find: #{full_request_path(input)}"
-        Failure('Could not find that folder')
+        Failure(Response::ApiResult.new(status: :not_found, message: NO_FOLDER_ERR))
       end
 
       # Helper methods
@@ -75,7 +76,7 @@ module CodePraise
 
       def commits_from_log(input)
         commits = Github::CommitMapper
-        .new(input[:gitrepo].repo_local_path).get_commit_entity
+          .new(input[:gitrepo].repo_local_path).get_commit_entity
         Repository::For.entity(input[:project]).update_commit(input[:project], commits)
       rescue StandardError
         raise 'Could not get commits history from git log'
