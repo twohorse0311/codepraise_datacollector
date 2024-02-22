@@ -22,19 +22,24 @@ module CodePraise
 
     use Rack::Session::Cookie, secret: config.SESSION_SECRET
 
+    configure :app_test do
+      require_relative '../spec/helpers/vcr_helper'
+      VcrHelper.setup_vcr
+      VcrHelper.configure_vcr_for_github(recording: :none)
+    end
+
     # Database Setup
-    configure :development, :test do
+    configure :development, :test, :app_test do
       require 'pry'; # for breakpoints
       ENV['DATABASE_URL'] = "sqlite://#{config.DB_FILENAME}"
     end
+
     # Database Setup
     @db = Sequel.connect(ENV.fetch('DATABASE_URL'))
     def self.db = @db # rubocop:disable Style/TrivialAccessors
 
     # Logger Setup
     @logger = Logger.new($stderr)
-    class << self
-      attr_reader :logger
-    end
+    def self.logger = @logger # rubocop:disable Style/TrivialAccessors
   end
 end

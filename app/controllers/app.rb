@@ -19,6 +19,8 @@ module CodePraise
 
     use Rack::MethodOverride # allows HTTP verbs beyond GET/POST (e.g., DELETE)
 
+    MSG_GET_STARTED = 'Add a Github project to get started'
+
     route do |routing|
       routing.on 'project' do
         routing.is do
@@ -102,8 +104,6 @@ module CodePraise
               flash[:error] = 'Could not clone this project'
               routing.redirect '/'
             end
-            require 'pry'
-            binding.pry
 
             commits = Repository::Commits.new(project).exist?
 
