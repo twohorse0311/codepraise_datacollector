@@ -6,9 +6,8 @@ module CodePraise
   # Web App
   class App < Roda
     plugin :halt
-    plugin :flash
+    plugin :caching
     plugin :all_verbs # allows DELETE and other HTTP verbs beyond GET/POST
-    plugin :common_logger, $stderr
 
     # use Rack::MethodOverride # for other HTTP verbs (with plugin all_verbs)
 
@@ -33,6 +32,7 @@ module CodePraise
           routing.on String, String do |owner_name, project_name|
             # GET /projects/{owner_name}/{project_name}[/folder_namepath/]
             routing.get do
+              response.cache_control public: true, max_age: 300
               path_request = Request::ProjectPath.new(
                 owner_name, project_name, request
               )
