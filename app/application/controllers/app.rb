@@ -32,12 +32,20 @@ module CodePraise
           routing.on String, String do |owner_name, project_name|
             # GET /projects/{owner_name}/{project_name}[/folder_namepath/]
             routing.get do
-              response.cache_control public: true, max_age: 300
+              App.configure :production do
+                response.cache_control public: true, max_age: 300
+              end
+              request_id = [request.env, request.path, Time.now.to_f].hash
+              
               path_request = Request::ProjectPath.new(
                 owner_name, project_name, request
               )
 
-              result = Service::AppraiseProject.new.call(requested: path_request)
+              result = Service::AppraiseProject.new.call(
+                requested: path_request,
+                request_id: request_id,
+                config: App.config
+              )
 
               if result.failure?
                 failed = Representer::HttpResponse.new(result.failure)

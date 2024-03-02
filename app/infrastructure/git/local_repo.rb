@@ -24,7 +24,7 @@ module CodePraise
       end
 
       def path
-        @git_repo_path 
+        @git_repo_path
       end
 
       def clone_remote
@@ -56,14 +56,14 @@ module CodePraise
         FileUtils.rm_rf(@git_repo_path)
       end
 
+      def wipe
+        FileUtils.rm_rf @git_repo_path
+      end
+
       private
 
       def raise_unless_setup
         raise Errors::InvalidLocalGitRepo unless exists?
-      end
-
-      def wipe
-        FileUtils.rm_rf @git_repo_path
       end
     end
   end

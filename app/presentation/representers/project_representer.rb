@@ -4,6 +4,7 @@ require 'roar/decorator'
 require 'roar/json'
 
 require_relative 'member_representer'
+require_relative 'commit_representer'
 
 # Represents essential Repo information for API output
 module CodePraise
@@ -25,7 +26,7 @@ module CodePraise
       collection :commits, extend: Representer::Commit, class: OpenStruct
 
       link :self do
-        "#{App.config.API_HOST}/api/v1/projects/#{project_name}/#{owner_name}"
+        "#{ENV['API_HOST']}/api/v1/projects/#{project_name}/#{owner_name}"
       end
 
       private

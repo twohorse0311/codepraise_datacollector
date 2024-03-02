@@ -8,9 +8,10 @@ module CodePraise
     class AppraiseProject
       include Dry::Transaction
 
-      step :retrieve_remote_project
-      step :clone_remote
-      step :store_commit
+      step :find_project_details
+      step :check_project_eligibility
+      step :request_cloning_worker
+      step :request_logging_worker
       step :appraise_contributions
 
       private
@@ -20,8 +21,12 @@ module CodePraise
       CLONE_ERR = 'Could not clone this project'
       GET_COMMIT_ERR = 'Could not get the commits of this project'
       NO_FOLDER_ERR = 'Could not find that folder'
+      SIZE_ERR = 'Project too large to analyze'
+      PROCESSING_MSG = 'Appraising the project'
+      LOGGING_MSG = 'Logging commits from project'
 
-      def retrieve_remote_project(input)
+      # input hash keys expected: :project, :requested, :config
+      def find_project_details(input)
         input[:project] = Repository::For.klass(Entity::Project).find_full_name(
           input[:requested].owner_name, input[:requested].project_name
         )
@@ -35,25 +40,50 @@ module CodePraise
         Failure(Response::ApiResult.new(status: :internal_error, message: DB_ERR))
       end
 
-      def clone_remote(input)
-        gitrepo = GitRepo.new(input[:project])
-        gitrepo.clone unless gitrepo.exists_locally?
+      def check_project_eligibility(input)
+        if input[:project].too_large?
+          Failure(Response::ApiResult.new(status: :bad_request, message: SIZE_ERR))
+        else
+          input[:gitrepo] = GitRepo.new(input[:project], input[:config])
+          Success(input)
+        end
+      end
 
-        Success(input.merge(gitrepo:))
-      rescue StandardError
-        # App.logger.error error.backtrace.join("\n")
+      def request_cloning_worker(input)
+        return Success(input) if input[:gitrepo].exists_locally?
+
+        Messaging::Queue.new(App.config.CLONE_QUEUE_URL, App.config).send(clone_request_json(input))
+
+        Failure(Response::ApiResult.new(
+                  status: :processing,
+                  message: { request_id: input[:request_id], msg: PROCESSING_MSG }
+                ))
+      rescue StandardError => e
+        log_error(e)
         Failure(Response::ApiResult.new(status: :internal_error, message: CLONE_ERR))
       end
 
-      def store_commit(input)
-        commits_from_log(input) unless commits_stored(input[:project])
-        input[:project] = Repository::For.klass(Entity::Project).find_full_name(
-          input[:requested].owner_name, input[:requested].project_name
-        )
-        Success(input)
+      def request_logging_worker(input)
+        return Success(input) if commits_stored(input[:project])
+
+        Messaging::Queue.new(App.config.LOG_QUEUE_URL, App.config).send(log_request_json(input))
+        Failure(Response::ApiResult.new(
+                  status: :logging_commits,
+                  message: { request_id: input[:request_id], msg: LOGGING_MSG }
+                ))
       rescue StandardError
         Failure(Response::ApiResult.new(status: :internal_error, message: GET_COMMIT_ERR))
       end
+
+      # def store_commit(input)
+      #   commits_from_log(input) unless commits_stored(input[:project])
+      #   input[:project] = Repository::For.klass(Entity::Project).find_full_name(
+      #     input[:requested].owner_name, input[:requested].project_name
+      #   )
+      #   Success(input)
+      # rescue StandardError
+      #   Failure(Response::ApiResult.new(status: :internal_error, message: GET_COMMIT_ERR))
+      # end
 
       def appraise_contributions(input)
         input[:folder] = Mapper::Contributions
@@ -62,7 +92,7 @@ module CodePraise
         appraisal = Response::ProjectFolderContributions.new(input[:project], input[:folder])
         Success(Response::ApiResult.new(status: :ok, message: appraisal))
       rescue StandardError
-        App.logger.error "Could not find: #{full_request_path(input)}"
+        # App.logger.error "Could not find: #{full_request_path(input)}"
         Failure(Response::ApiResult.new(status: :not_found, message: NO_FOLDER_ERR))
       end
 
@@ -84,6 +114,22 @@ module CodePraise
 
       def commits_stored(project)
         Repository::Commits.new(project).exist?
+      end
+
+      def log_error(error)
+        App.logger.error [error.inspect, error.backtrace].flatten.join("\n")
+      end
+
+      def clone_request_json(input)
+        Response::CloneRequest.new(input[:project], input[:request_id])
+          .then { Representer::CloneRequest.new(_1) }
+          .then(&:to_json)
+      end
+
+      def log_request_json(input)
+        Response::CloneRequest.new(input[:project], input[:request_id])
+          .then { Representer::CloneRequest.new(_1) }
+          .then(&:to_json)
       end
     end
   end
