@@ -11,7 +11,7 @@ module CodePraise
       step :find_project_details
       step :check_project_eligibility
       step :request_cloning_worker
-      step :request_logging_worker
+      # step :request_logging_worker
       step :appraise_contributions
 
       private
@@ -63,17 +63,17 @@ module CodePraise
         Failure(Response::ApiResult.new(status: :internal_error, message: CLONE_ERR))
       end
 
-      def request_logging_worker(input)
-        return Success(input) if commits_stored(input[:project])
+      # def request_logging_worker(input)
+      #   return Success(input) if commits_stored(input[:project])
 
-        Messaging::Queue.new(App.config.LOG_QUEUE_URL, App.config).send(log_request_json(input))
-        Failure(Response::ApiResult.new(
-                  status: :logging_commits,
-                  message: { request_id: input[:request_id], msg: LOGGING_MSG }
-                ))
-      rescue StandardError
-        Failure(Response::ApiResult.new(status: :internal_error, message: GET_COMMIT_ERR))
-      end
+      #   Messaging::Queue.new(App.config.LOG_QUEUE_URL, App.config).send(log_request_json(input))
+      #   Failure(Response::ApiResult.new(
+      #             status: :logging_commits,
+      #             message: { request_id: input[:request_id], msg: LOGGING_MSG }
+      #           ))
+      # rescue StandardError
+      #   Failure(Response::ApiResult.new(status: :internal_error, message: GET_COMMIT_ERR))
+      # end
 
       # def store_commit(input)
       #   commits_from_log(input) unless commits_stored(input[:project])

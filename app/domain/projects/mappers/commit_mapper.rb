@@ -8,11 +8,14 @@ module CodePraise
         @path = path
       end
 
-      def get_commit_entity
-        commits = Git::LogReporter.new(@path).log_commits
-        commits.map do |commit|
-          build_entity(commit)
-        end
+      def get_commit_entity(year)
+        commit = Git::LogReporter.new(@path).log_commits(year)
+        p "====================================="
+        p year
+        p commit
+        return nil if commit.nil?
+
+        build_entity(commit)
       end
 
       def build_entity(commit)

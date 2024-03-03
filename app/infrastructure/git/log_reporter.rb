@@ -27,23 +27,21 @@ module CodePraise
           .full_command
       end
 
-      def log_commits
-        commits_by_year = {}
-
+      def log_commits(commit_year)
+        result = nil # 初始化result为nil
         Dir.chdir(@path) do
           IO.popen(full_command) do |output|
             output.each do |line|
               sha, year = line.split(' ')
-              next unless year.to_i.between?(2014, 2023)
-
-              unless commits_by_year.key?(year.to_i)
-                commits_by_year[year.to_i] = { year: year.to_i, sha: }
+              if year.to_i == commit_year
+                result = { year: year.to_i, sha: sha }
+                break # 满足条件，赋值给result后退出循环
               end
             end
           end
         end
-        commits_by_year.values
-      end
+        result # 返回result，如果没有找到匹配的commit_year，则为nil
+      end      
     end
   end
 end

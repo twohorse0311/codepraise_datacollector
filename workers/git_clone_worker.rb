@@ -33,10 +33,17 @@ module GitClone
       job = JobReporter.new(request, Worker.config)
 
       job.report(CloneMonitor.starting_percent)
-      CodePraise::GitRepo.new(job.project, Worker.config).clone_locally do |line|
+      git_repo = CodePraise::GitRepo.new(job.project, Worker.config)
+      git_repo.clone_locally do |line|
         job.report CloneMonitor.progress(line)
       end
 
+      commit_mapper = CodePraise::Github::CommitMapper.new(git_repo.repo_local_path)
+      commits = (2014..2023).map do |commit_year|
+        job.report CloneMonitor.percent(commit_year.to_s)
+        commit_mapper.get_commit_entity(commit_year)
+      end.compact
+      CodePraise::Repository::For.klass(CodePraise::Entity::Project).update_commit(job.project, commits)
       # Keep sending finished status to any latecoming subscribers
       job.report_each_second(5) { CloneMonitor.finished_percent }
     rescue CodePraise::GitRepo::Errors::CannotOverwriteLocalGitRepo
