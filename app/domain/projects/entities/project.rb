@@ -21,7 +21,7 @@ module CodePraise
       attribute :http_url,      Strict::String
       attribute :owner,         Member
       attribute :contributors,  Strict::Array.of(Member)
-      attribute :commits, Strict::Array.of(Commit).optional
+      attribute :commit,        Commit.optional
 
       def fullname
         "#{owner.username}/#{name}"
@@ -34,7 +34,7 @@ module CodePraise
 
       def to_attr_hash
         # to_hash.reject { |key, _| %i[id owner contributors].include? key }
-        to_hash.except(:id, :owner, :contributors, :commits)
+        to_hash.except(:id, :owner, :contributors, :commit)
       end
     end
   end

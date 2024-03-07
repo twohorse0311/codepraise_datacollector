@@ -40,7 +40,7 @@ module CodePraise
             http_url: http_url,
             owner: owner,
             contributors: contributors, 
-            commits: nil
+            commit: nil
           )
         end
 
@@ -72,9 +72,9 @@ module CodePraise
           @member_mapper.load_several(@data['contributors_url'])
         end
 
-        # def commits
-        #   @commit_mapper.load_several(@owner_name, @project_name)
-        # end
+        def commit
+          @data['commit']
+        end
       end
     end
   end

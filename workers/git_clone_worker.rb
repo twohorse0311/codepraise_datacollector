@@ -2,6 +2,7 @@
 
 require_relative '../require_app'
 require_relative 'clone_monitor'
+require_relative 'appraise_service'
 require_relative 'job_reporter'
 require_app
 
@@ -30,25 +31,41 @@ module GitClone
     shoryuken_options queue: config.CLONE_QUEUE_URL, auto_delete: true
 
     def perform(_sqs_msg, request)
-      job = JobReporter.new(request, Worker.config)
-
-      job.report(CloneMonitor.starting_percent)
-      git_repo = CodePraise::GitRepo.new(job.project, Worker.config)
-      git_repo.clone_locally do |line|
-        job.report CloneMonitor.progress(line)
-      end
-
-      commit_mapper = CodePraise::Github::CommitMapper.new(git_repo.repo_local_path)
+      project, reporter, request_id = setup_job(request)
+      gitrepo = CodePraise::GitRepo.new(project, Worker.config)
+      service = Service.new(project, reporter, gitrepo, request_id)
+      service.clone_project
       commits = (2014..2023).map do |commit_year|
-        job.report CloneMonitor.percent(commit_year.to_s)
-        commit_mapper.get_commit_entity(commit_year)
+        next nil if service.store_commits(commit_year).nil?
+        service.appraise_project
+        service.store_appraisal_cache
       end.compact
-      CodePraise::Repository::For.klass(CodePraise::Entity::Project).update_commit(job.project, commits)
+      # CodePraise::Repository::For.klass(CodePraise::Entity::Project).update_commit(@project, commits)
       # Keep sending finished status to any latecoming subscribers
-      job.report_each_second(5) { CloneMonitor.finished_percent }
+      each_second(15) do
+        reporter.publish(CloneMonitor.finished_percent, 'stored', request_id)
+      end
     rescue CodePraise::GitRepo::Errors::CannotOverwriteLocalGitRepo
       # worker should crash fail early - only catch errors we expect!
       puts 'CLONE EXISTS -- ignoring request'
+    end
+
+    private
+
+    def setup_job(request)
+      clone_request = CodePraise::Representer::CloneRequest
+        .new(OpenStruct.new).from_json(request)
+
+      [clone_request.project,
+       ProgressReporter.new(Worker.config, clone_request.id),
+       clone_request.id]
+    end
+
+    def each_second(seconds)
+      seconds.times do
+        sleep(1)
+        yield if block_given?
+      end
     end
   end
 end

@@ -30,7 +30,7 @@ module CodePraise
       routing.on 'api/v1' do
         routing.on 'projects' do
           routing.on String, String do |owner_name, project_name|
-            # GET /projects/{owner_name}/{project_name}[/folder_namepath/]
+            # GET /projects/{owner_name}/{project_name}[/sha]
             routing.get do
               App.configure :production do
                 response.cache_control public: true, max_age: 300

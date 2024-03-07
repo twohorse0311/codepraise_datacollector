@@ -43,6 +43,16 @@ module CodePraise
         rebuild_entity(db_record)
       end
 
+      def self.commit_lists(owner_name, project_name)
+        db_commits = Database::ProjectOrm
+        .graph(:members, id: :owner_id)
+        .where(username: owner_name, name: project_name)
+        .first.commits
+        db_commits.map do |commit|
+          Commits.rebuild_entity(commit).sha
+        end
+      end
+
       def self.create(entity)
         raise 'Project already exists' if find(entity)
 
@@ -52,12 +62,11 @@ module CodePraise
 
       def self.rebuild_entity(db_record)
         return nil unless db_record
-
         Entity::Project.new(
           db_record.to_hash.merge(
             owner: Members.rebuild_entity(db_record.owner),
             contributors: Members.rebuild_many(db_record.contributors),
-            commits: Commits.rebuild_many(db_record.commits)
+            commit: Commits.rebuild_many(db_record.commits)
           )
         )
       end

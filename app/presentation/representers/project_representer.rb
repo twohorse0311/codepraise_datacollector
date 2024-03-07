@@ -20,10 +20,11 @@ module CodePraise
       property :ssh_url
       property :http_url
       property :fullname
+      property :commit, extend: Representer::Commit, class: OpenStruct
       property :size
       property :owner, extend: Representer::Member, class: OpenStruct
       collection :contributors, extend: Representer::Member, class: OpenStruct
-      collection :commits, extend: Representer::Commit, class: OpenStruct
+      # collection :commits, extend: Representer::Commit, class: OpenStruct
 
       link :self do
         "#{ENV['API_HOST']}/api/v1/projects/#{project_name}/#{owner_name}"

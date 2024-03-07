@@ -32,9 +32,10 @@ module CodePraise
       end
 
       def self.rebuild_many(db_records)
-        db_records.map do |db_member|
+        commits_entity = db_records.map do |db_member|
           Commits.rebuild_entity(db_member)
         end
+        commits_entity.empty? ? nil : commits_entity
       end
 
       def self.find_or_create(entity)

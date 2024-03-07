@@ -42,6 +42,7 @@ gem 'http', '~> 5.0'
 gem 'hirb'
 # gem 'hirb-unicode' # incompatible with new rubocop
 gem 'sequel', '~> 5.0'
+gem 'mongo'
 
 
 
@@ -77,3 +78,5 @@ group :development do
   gem 'rerun', '~> 0.0'
   gem 'rubocop', '~> 1.0'
 end
+
+gem 'git', '~> 1.9'

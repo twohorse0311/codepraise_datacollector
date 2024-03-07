@@ -33,6 +33,8 @@ module CodePraise
           entitystore: 'file:_cache/rack/body'
     end
 
+   
+    
     configure :production do
       puts 'RUNNING IN PRODUCTION MODE'
       # Set DATABASE_URL environment variable on production platform
@@ -54,6 +56,16 @@ module CodePraise
     configure :development, :test, :app_test do
       require 'pry'; # for breakpoints
       ENV['DATABASE_URL'] = "sqlite://#{config.DB_FILENAME}"
+    end
+
+    configure :development, :test, :data do
+      ENV['MONGODB_URL'] = 'mongodb://' + config.MONGO_URL
+
+      require 'mongo'
+      MONGO = Mongo::Client.new(ENV['MONGODB_URL'])
+      def self.mongo
+        MONGO
+      end
     end
 
     # Database Setup

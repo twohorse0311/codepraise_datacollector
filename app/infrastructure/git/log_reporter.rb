@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'base64'
+require 'git'
 
 require_relative 'command'
 
@@ -15,8 +16,9 @@ module CodePraise
     class LogReporter
       attr_reader :path
 
-      def initialize(path)
-        @path = path
+      def initialize(git_repo)
+        @git_repo = git_repo
+        @git = ::Git.open(@git_repo.repo_local_path)
       end
 
       def full_command
@@ -27,21 +29,21 @@ module CodePraise
           .full_command
       end
 
+      def checkout_commit(commit_sha)
+        @git.checkout(commit_sha)
+      end
+
       def log_commits(commit_year)
-        result = nil # 初始化result为nil
-        Dir.chdir(@path) do
-          IO.popen(full_command) do |output|
-            output.each do |line|
-              sha, year = line.split(' ')
-              if year.to_i == commit_year
-                result = { year: year.to_i, sha: sha }
-                break # 满足条件，赋值给result后退出循环
-              end
-            end
-          end
-        end
-        result # 返回result，如果没有找到匹配的commit_year，则为nil
-      end      
+        start_date = "#{commit_year}-01-01"
+        end_date = "#{commit_year}-12-31"
+        commits = @git.log.since(start_date).until(end_date)
+        last_commit = commits.first # 获取该年份的最后一次提交
+
+        return nil if last_commit.nil?
+
+        @sha = last_commit.sha
+        { year: commit_year, sha: @sha }
+      end
     end
   end
 end

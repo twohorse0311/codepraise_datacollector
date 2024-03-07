@@ -9,6 +9,7 @@ module CodePraise
       include Dry::Transaction
 
       step :find_project_details
+      step :check_sha
       step :check_project_eligibility
       step :request_cloning_worker
       # step :request_logging_worker
@@ -23,6 +24,7 @@ module CodePraise
       NO_FOLDER_ERR = 'Could not find that folder'
       SIZE_ERR = 'Project too large to analyze'
       PROCESSING_MSG = 'Appraising the project'
+      SHA_ERR = 'Invalid sha code'
       LOGGING_MSG = 'Logging commits from project'
 
       # input hash keys expected: :project, :requested, :config
@@ -40,6 +42,19 @@ module CodePraise
         Failure(Response::ApiResult.new(status: :internal_error, message: DB_ERR))
       end
 
+      def check_sha(input)
+        commits_list = Repository::For.klass(Entity::Project).commit_lists(
+          input[:requested].owner_name, input[:requested].project_name
+        ).unshift("")
+
+        if commits_list.include?(input[:requested].commit)
+          input[:sha] = input[:requested].commit != "" ? input[:requested].sha : commits_list.last
+          Success(input)
+        else
+          Failure(Response::ApiResult.new(status: :bad_request, message: SHA_ERR))
+        end
+      end
+
       def check_project_eligibility(input)
         if input[:project].too_large?
           Failure(Response::ApiResult.new(status: :bad_request, message: SIZE_ERR))
@@ -48,6 +63,8 @@ module CodePraise
           Success(input)
         end
       end
+
+      
 
       def request_cloning_worker(input)
         return Success(input) if input[:gitrepo].exists_locally?
@@ -63,46 +80,16 @@ module CodePraise
         Failure(Response::ApiResult.new(status: :internal_error, message: CLONE_ERR))
       end
 
-      # def request_logging_worker(input)
-      #   return Success(input) if commits_stored(input[:project])
-
-      #   Messaging::Queue.new(App.config.LOG_QUEUE_URL, App.config).send(log_request_json(input))
-      #   Failure(Response::ApiResult.new(
-      #             status: :logging_commits,
-      #             message: { request_id: input[:request_id], msg: LOGGING_MSG }
-      #           ))
-      # rescue StandardError
-      #   Failure(Response::ApiResult.new(status: :internal_error, message: GET_COMMIT_ERR))
-      # end
-
-      # def store_commit(input)
-      #   commits_from_log(input) unless commits_stored(input[:project])
-      #   input[:project] = Repository::For.klass(Entity::Project).find_full_name(
-      #     input[:requested].owner_name, input[:requested].project_name
-      #   )
-      #   Success(input)
-      # rescue StandardError
-      #   Failure(Response::ApiResult.new(status: :internal_error, message: GET_COMMIT_ERR))
-      # end
-
       def appraise_contributions(input)
         input[:folder] = Mapper::Contributions
-          .new(input[:gitrepo]).for_folder(input[:requested].folder_name)
-        p input[:project]
+          .new(input[:gitrepo]).for_folder("")
         appraisal = Response::ProjectFolderContributions.new(input[:project], input[:folder])
         Success(Response::ApiResult.new(status: :ok, message: appraisal))
       rescue StandardError
-        # App.logger.error "Could not find: #{full_request_path(input)}"
         Failure(Response::ApiResult.new(status: :not_found, message: NO_FOLDER_ERR))
       end
 
       # Helper methods
-
-      def full_request_path(input)
-        [input[:requested].owner_name,
-         input[:requested].project_name,
-         input[:requested].folder_name].join('/')
-      end
 
       def commits_from_log(input)
         commits = Github::CommitMapper

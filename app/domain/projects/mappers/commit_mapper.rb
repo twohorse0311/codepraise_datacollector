@@ -4,15 +4,13 @@ module CodePraise
   # Provides access to project commit
   module Github
     class CommitMapper
-      def initialize(path)
-        @path = path
+      def initialize(git_repo)
+        @git_repo = git_repo
+        @path = @git_repo.repo_local_path
       end
 
       def get_commit_entity(year)
-        commit = Git::LogReporter.new(@path).log_commits(year)
-        p "====================================="
-        p year
-        p commit
+        commit = Git::LogReporter.new(@git_repo).log_commits(year)
         return nil if commit.nil?
 
         build_entity(commit)
