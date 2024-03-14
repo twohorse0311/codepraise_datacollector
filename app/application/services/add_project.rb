@@ -19,8 +19,7 @@ module CodePraise
       # Expects input[:owner_name] and input[:project_name]
 
       def find_project(input)
-        require 'pry'
-        binding.pry
+        
         if (project = project_in_database(input))
           input[:local_project] = project
         else
@@ -32,6 +31,8 @@ module CodePraise
       end
 
       def store_project(input)
+        require 'pry'
+        binding.pry
         project =
           if (new_proj = input[:remote_project])
             Repository::For.entity(new_proj).create(new_proj)

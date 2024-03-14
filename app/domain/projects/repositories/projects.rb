@@ -62,11 +62,13 @@ module CodePraise
 
       def self.rebuild_entity(db_record)
         return nil unless db_record
+        commit = db_record.commits.empty? ? nil: Commits.rebuild_many(db_record.commits)[0]
+
         Entity::Project.new(
           db_record.to_hash.merge(
             owner: Members.rebuild_entity(db_record.owner),
             contributors: Members.rebuild_many(db_record.contributors),
-            commit: Commits.rebuild_many(db_record.commits)
+            commit: commit
           )
         )
       end

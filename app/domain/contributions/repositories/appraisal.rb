@@ -24,7 +24,7 @@ module CodePraise
       def self.find_or_create_by(data)
         appraisal = find_by(project_name: data[:project_name],
                             owner_name: data[:owner_name],
-                            sha: data[:sha])
+                            commit_year: data[:commit_year])
 
         return appraisal if appraisal
 
@@ -59,6 +59,7 @@ module CodePraise
           id: odm.id,
           project_name: odm.document['project_name'],
           owner_name: odm.document['owner_name'],
+          commit_year: odm.document['commit_year'],
           sha: odm.document['sha'],
           appraisal: odm.document['appraisal'],
           state: odm.document['state'],

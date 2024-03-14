@@ -29,6 +29,7 @@ module CodePraise
 
       # input hash keys expected: :project, :requested, :config
       def find_project_details(input)
+        
         input[:project] = Repository::For.klass(Entity::Project).find_full_name(
           input[:requested].owner_name, input[:requested].project_name
         )

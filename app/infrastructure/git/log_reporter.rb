@@ -38,7 +38,6 @@ module CodePraise
         end_date = "#{commit_year}-12-31"
         commits = @git.log.since(start_date).until(end_date)
         last_commit = commits.first # 获取该年份的最后一次提交
-
         return nil if last_commit.nil?
 
         @sha = last_commit.sha

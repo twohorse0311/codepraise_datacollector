@@ -35,12 +35,15 @@ module GitClone
       gitrepo = CodePraise::GitRepo.new(project, Worker.config)
       service = Service.new(project, reporter, gitrepo, request_id)
       service.clone_project
-      commits = (2014..2023).map do |commit_year|
+
+      commit_mapper = CodePraise::Github::CommitMapper.new(gitrepo)
+      commits = 2023.downto(2014).map do |commit_year|
         next nil if service.store_commits(commit_year).nil?
         service.appraise_project
         service.store_appraisal_cache
+        commit_mapper.get_commit_entity(commit_year)
       end.compact
-      # CodePraise::Repository::For.klass(CodePraise::Entity::Project).update_commit(@project, commits)
+      CodePraise::Repository::For.klass(CodePraise::Entity::Project).update_commit(project, commits)
       # Keep sending finished status to any latecoming subscribers
       each_second(15) do
         reporter.publish(CloneMonitor.finished_percent, 'stored', request_id)

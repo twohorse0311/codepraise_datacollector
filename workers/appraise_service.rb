@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require_relative '../require_app'
 require_app
 require_relative 'clone_monitor'
@@ -46,17 +47,15 @@ module GitClone
       @reporter.publish(CloneMonitor.percent(commit_year.to_s), 'storing commits', @request_id)
       log_cache = CodePraise::Git::LogReporter.new(@gitrepo)
       last_commit = log_cache.log_commits(commit_year) # get the last commit of the year
-
+      
       return nil if last_commit.nil?
 
-      require 'pry'
-      binding.pry
-
       @sha = last_commit[:sha]
+      
       @cache = CodePraise::Repository::Appraisal.find_or_create_by( # 存進 mongoDB
-        project_name: @project.name,
-        owner_name: @project.owner.username,
-        sha: @sha
+        { project_name: @project.name,
+          owner_name: @project.owner.username,
+          commit_year: }
       )
       log_cache.checkout_commit(@sha)
       # commit_mapper.get_commit_entity(commit_year) # get commit entity
@@ -66,7 +65,7 @@ module GitClone
       # @reporter.publish(CloneMonitor.progress('Appraising'), 'appraising', @request_id)
       contributions = CodePraise::Mapper::Contributions.new(@gitrepo)
       folder_contributions = contributions.for_folder('')
-      # commit_contributions = contributions.commits 
+      # commit_contributions = contributions.commits
       @project_folder_contribution = CodePraise::Response::ProjectFolderContributions
         .new(@project, folder_contributions)
       # @reporter.publish(CloneMonitor.progress('Appraised'), 'appraised', @request_id)
@@ -76,7 +75,7 @@ module GitClone
     def store_appraisal_cache
       return false unless @project_folder_contribution
 
-      data = { appraisal: folder_contributions_hash}
+      data = { appraisal: folder_contributions_hash , sha: @sha}
 
       CodePraise::Repository::Appraisal
         .update(id: @cache.id, data:)

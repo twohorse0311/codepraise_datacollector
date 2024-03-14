@@ -11,8 +11,9 @@ module CodePraise
 
       attribute :id,           Strict::String
       attribute :project_name, Strict::String
-      attribute :owner_name,   Strict::String
-      attribute :sha,          Strict::String
+      attribute :owner_name,   Strict::String      
+      attribute :commit_year,   Strict::Integer
+      attribute :sha,          Strict::String.optional
       attribute :appraisal,    Strict::Hash.optional
       attribute :state,        Strict::String.optional
       attribute :request_id,   Coercible::String.optional
