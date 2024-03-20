@@ -3,6 +3,7 @@
 require_relative '../require_app'
 require_app
 require_relative 'clone_monitor'
+require 'fileutils'
 
 module GitClone
   # Encapuslate all useful method for appraisal worker
@@ -44,6 +45,7 @@ module GitClone
     end
 
     def store_commits(commit_year)
+      @commit_year = commit_year
       @reporter.publish(CloneMonitor.percent(commit_year.to_s), 'storing commits', @request_id)
       log_cache = CodePraise::Git::LogReporter.new(@gitrepo)
       last_commit = log_cache.log_commits(commit_year) # get the last commit of the year
@@ -72,10 +74,19 @@ module GitClone
       # @gitrepo.delete
     end
 
-    def store_appraisal_cache
+    def store_appraisal_cache(commit_year)
       return false unless @project_folder_contribution
 
-      data = { appraisal: folder_contributions_hash , sha: @sha}
+      contributions_hash = folder_contributions_hash
+      data = { appraisal: contributions_hash, sha: @sha}
+      
+
+      target_path = "/Users/twohorse/Desktop/未命名檔案夾/repostore/#{@project.name}_#{@project.owner.username}_#{commit_year}.json"
+
+      # 确保目标目录存在，不存在则创建
+      FileUtils.mkdir_p(File.dirname(target_path))
+      File.write(target_path, JSON.pretty_generate(contributions_hash))
+
 
       CodePraise::Repository::Appraisal
         .update(id: @cache.id, data:)

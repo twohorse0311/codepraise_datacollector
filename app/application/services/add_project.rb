@@ -31,8 +31,6 @@ module CodePraise
       end
 
       def store_project(input)
-        require 'pry'
-        binding.pry
         project =
           if (new_proj = input[:remote_project])
             Repository::For.entity(new_proj).create(new_proj)

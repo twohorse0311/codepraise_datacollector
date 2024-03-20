@@ -37,10 +37,10 @@ module GitClone
       service.clone_project
 
       commit_mapper = CodePraise::Github::CommitMapper.new(gitrepo)
-      commits = 2023.downto(2014).map do |commit_year|
+      commits = 2022.downto(2014).map do |commit_year|
         next nil if service.store_commits(commit_year).nil?
         service.appraise_project
-        service.store_appraisal_cache
+        service.store_appraisal_cache(commit_year)
         commit_mapper.get_commit_entity(commit_year)
       end.compact
       CodePraise::Repository::For.klass(CodePraise::Entity::Project).update_commit(project, commits)
